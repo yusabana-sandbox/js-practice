@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang='ja'>
+<head>
+  <meta charset="UTF-8">
+  <title>俺のエディターサンプル</title>
+  <script src="http://code.jquery.com/jquery-1.11.2.js"></script>
+  <script src="http://cdn.jsdelivr.net/marked/0.3.1/marked.js"></script>
+  <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css" />
+</head>
+<body>
+<div class="row">
+  <div class="col-md-6 col-sm-6">
+    <textarea  type="text" id="titleeditor" class="form-control"></textarea>
+    <textarea id="bodyeditor" class="form-control"></textarea>
+  </div>
+
+  <div class="col-md-6 col-sm-6 resultarea">
+    <div id="titleresult"><h1></h1></div>
+    <div id="bodyresult"></div>
+  </div>
+</div>
+
+<script type="text/javascript">
+$(function() {
+  // localStorageを呼び出す
+  var l = localStorage;
+
+  // localStorageにデータが有れば、title, bodyをプリセット
+  if (l.getItem('body') != null) {
+    var src = l.getItem('body');
+    var html = marked(src);
+    $('#bodyresult').html(html);
+    $('textarea#bodyeditor').val(src);
+  }
+  if (l.getItem('title') != null) {
+    src = l.getItem('title');
+    $('#titleresult h1').text(src);
+    $('textarea#titleeditor').val(src);
+  }
+
+
+  $('#bodyeditor').keyup(function() {
+    var src = $(this).val();
+    var html = marked(src);
+    $('#bodyresult').html(html);
+
+    // ローカルストレージ保存
+    l.setItem("body", $(this).val());
+  });
+
+  $('#titleeditor').keyup(function() {
+    var src = $(this).val();
+    $('#titleresult h1').text(src);
+
+    // ローカルストレージ保存
+    l.setItem("title", $(this).val());
+  });
+
+  // tabで2スペース移動とする
+  $('textarea').keydown(function(e) {
+    if(e.keyCode == 9) {
+      e.preventDefault(); //元の動きをキャンセル
+      var elem = e.target;
+      var val = elem.value;
+
+      // 現在のキャレットの位置を取得し、半角スペース 2つ いれこみ
+      // setSelectionRangeで開始と終了位置を スペース2つ分移動した同じ値を入れることでキャレットを2スペース分移動する
+      var pos = elem.selectionStart;
+      elem.value = val.substr(0, pos) + '  ' + val.substr(pos, val.length);
+      elem.setSelectionRange(pos + 2, pos + 2);
+    }
+  });
+
+  $(window).keydown(function(e) {
+    if (event.ctrlKey) {
+      switch(e.keyCode) {
+        case 68: //ctrl + d => 削除
+          if (confirm('title/bodyをすべて削除しますか?')) {
+            $('#bodyeditor').val('');
+            $('#bodyresult').html('');
+            $('#titleeditor').val('');
+            $('#titleresult h1').text('');
+          }
+          break;
+        case 13: //ctrl+enter => textarea移動
+          if(document.activeElement.id == "titleeditor") {
+            $('#bodyeditor').focus();
+          }
+          else if(document.activeElement.id == 'bodyeditor') {
+            $('#titleeditor').focus();
+          }
+          return false;
+          break;
+      }
+    }
+  });
+
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,28 @@
+<html>
+  <head>
+    <script src='https://code.jquery.com/jquery-2.1.3.min.js'></script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/knockout/3.2.0/knockout-min.js'></script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/rxjs/2.33.22/rx.lite.js'></script>
+
+    <!-- Javascriptのデータ操作を簡略化するために利用する -->
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/lodash.js/2.4.1/lodash.js'></script>
+  </head>
+
+  <body>
+
+    <!-- data-bind属性を使ってビューモデルとバインディング -->
+    <input type="text" name="email" data-bind="value: email, valueUpdate: 'input'" />
+    <p data-bind="text: email"></p>
+
+    <script>
+      function ViewModel() {
+        //ko.observable メソッドを使ってプロパティをObservableにする
+        this.email = ko.observable();
+      }
+
+      // ko.applyBindingsメソッドを使ってDomとビューモデルをバインディングする
+      ko.applyBindings(new ViewModel());
+    </script>
+
+  </body>
+</html>

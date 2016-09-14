@@ -1,0 +1,114 @@
+<html>
+  <head>
+    <script src='https://code.jquery.com/jquery-2.1.3.min.js'></script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/knockout/3.2.0/knockout-min.js'></script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/rxjs/2.3.22/rx.lite.js'></script>
+
+    <!-- Javascriptのデータ操作を簡略化するために利用する _アンダースコアオブジェクト -->
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/lodash.js/2.4.1/lodash.js'></script>
+  </head>
+
+  <body>
+    <form>
+      <input type="text" id="query" name="query" />
+    </form>
+
+    <table class="table table-border">
+      <thead>
+        <tr>
+          <th>リポジトリ名
+            <input type="button" value="▲" id="ascBtn" />
+            <input type="button" value="▼" id="descBtn" />
+          </th>
+          <th>パス</th>
+          <th>オーナー</th>
+        </tr>
+      </thead>
+      <tbody data-bind="foreach: repos">
+        <tr>
+          <td data-bind="text: name"></td>
+          <td data-bind="text: full_name"></td>
+          <td>
+            <img width="100" data-bind="attr: {src: owner.avatar_url}" />
+            <span data-bind="text: owner.login"></span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+
+    <script>
+      function ViewModel() {
+        this.repos = ko.observable();
+      }
+      var viewModel = new ViewModel();
+      ko.applyBindings(viewModel);
+
+
+      var inputStream = Rx.Observable.fromEvent($('#query'), 'input')
+        .map(function(e) {
+          return e.target.value;
+        });
+
+      //inputStreamで入力されたものを処理して都度実行するようなAPIのURLを組み立てている
+      var queryStream = inputStream
+        .throttle(500)
+        .filter(function(text) { return text.length > 0; })
+        .distinctUntilChanged()
+        .map(function(text) {
+          return 'https://api.github.com/search/repositories?q=' + text;
+        });
+
+      // 任意のイベントを実行するSubjectのインスタンスでローディングを実現する
+      var executingStream = new Rx.Subject();
+
+      // ここでPromises/A+を利用してajaxでAPI呼び出しする
+      var repositoriesStream = queryStream
+        .flatMap(function(query){
+          executingStream.onNext(true);                              // subjectのイベント発動(true)
+
+          var promise = $.ajax({url: query});
+          return Rx.Observable.fromPromise(promise)
+            .finally(function() { executingStream.onNext(false); }); // subjectのイベント発動(false)
+        })
+        .map(function(res) {
+          return res.items
+        });
+
+      // subjectイベントの実際の処理の中身
+      executingStream.subscribe(function(executing) {
+        if (executing) {
+          $('form').append('<p class="loading" style="text-align: center; background-color: #99cc00; z-index: 10;">loading...</p>');
+        }
+        else {
+          $('.loading').hide();
+        }
+      });
+
+      repositoriesStream.subscribe(function(repos) {
+        viewModel.repos(repos);
+      });
+
+
+
+      // 並び替えの順
+      var ascSortStream = Rx.Observable.fromEvent($('#ascBtn'), 'click')
+        .map(function() {
+          return _.sortBy((viewModel.repos() || []), function(repo) { return repo.name; });
+        });
+      var descSortStream = Rx.Observable.fromEvent($('#descBtn'), 'click')
+        .map(function() {
+          return _.sortBy((viewModel.repos() || []), function(repo) { return repo.name; }).reverse();
+        });
+
+      Rx.Observable.merge([ascSortStream, descSortStream])
+        .subscribe(function(repos) {
+          viewModel.repos(repos);
+        });
+
+
+    </script>
+
+
+  </body>
+</html>

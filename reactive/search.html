@@ -1,0 +1,54 @@
+<html>
+<head>
+  <script src="https://code.jquery.com/jquery-1.11.2.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/rxjs/2.3.22/rx.lite.js"></script>
+</head>
+
+<body>
+  <input type="text" id="query" name="query" />
+  <div id='output'></div>
+
+  <script>
+    var inputStream = Rx.Observable.fromEvent($('#query'), 'input')
+                        .map(function(e) {
+                          return e.target.value;
+                        });
+
+    //inputStreamで入力されたものを処理して都度実行するようなAPIのURLを組み立てている
+    var queryStream = inputStream
+      .throttle(500)
+      .filter(function(text) { return text.length > 0; })
+      .distinctUntilChanged()
+      .map(function(text) {
+        return 'https://api.github.com/search/repositories?q=' + text;
+      });
+
+    // ここでPromises/A+を利用してajaxでAPI呼び出しする
+    var repositoriesStream = queryStream
+      .flatMap(function(query){
+        var promise = $.ajax({url: query});
+        return Rx.Observable.fromPromise(promise);
+      })
+      .map(function(res) {
+        return res.items
+      });
+
+    repositoriesStream.subscribe(function(repos) {
+      var $output = $('#output')
+      $output.append('SIZE:' + repos.length + '<br><br>')
+      // console.log(repos);
+
+      // 更に配列をStreamにしてsubscribeでgithubのリポジトリ名を表示する
+      Rx.Observable.from(repos)
+        .subscribe(
+          function(item) { $output.append(item.full_name + " : "); },
+          function(err) { console.log(error); },
+          function(item) { $output.append('<br>==========================<br><br>'); }
+        );
+    });
+
+  </script>
+
+</body>
+
+</html>

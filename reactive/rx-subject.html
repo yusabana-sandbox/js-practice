@@ -1,0 +1,29 @@
+<html>
+<head>
+  <script src="https://code.jquery.com/jquery-1.11.2.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/rxjs/2.3.22/rx.lite.js"></script>
+</head>
+
+<body>
+  <input type="text" id="query" name="query" />
+  <div id='output'></div>
+
+  <script>
+    var subject = new Rx.Subject();
+    subject.subscribe(
+      function(n) { console.log(n); },              //任意のイベント
+      null,                                         //任意のエラーイベント
+      function() { console.log('completed'); }      //任意の完了イベント
+    );
+
+
+    // 以下のようにonNextのタイミングで任意のsubjectイベントを呼び出せる
+    subject.onNext(1);
+    subject.onNext(2);
+    subject.onNext("hello world");
+    subject.onCompleted();
+  </script>
+
+</body>
+
+</html>
